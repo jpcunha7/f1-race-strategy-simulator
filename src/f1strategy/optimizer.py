@@ -40,8 +40,7 @@ def generate_one_stop_strategies(
                 ]
 
                 strategy = Strategy(
-                    stints=stints,
-                    description=f"1-stop: {compound1} -> {compound2} (Lap {pit_lap})"
+                    stints=stints, description=f"1-stop: {compound1} -> {compound2} (Lap {pit_lap})"
                 )
 
                 if strategy.validate(total_laps, min_stint):
@@ -82,8 +81,7 @@ def generate_two_stop_strategies(
                         ]
 
                         strategy = Strategy(
-                            stints=stints,
-                            description=f"2-stop: {c1}->{c2}->{c3} (L{pit1},L{pit2})"
+                            stints=stints, description=f"2-stop: {c1}->{c2}->{c3} (L{pit1},L{pit2})"
                         )
 
                         if strategy.validate(total_laps, min_stint):
@@ -119,8 +117,7 @@ def optimize_strategy(
     # Limit strategies to test
     if len(all_strategies) > max_strategies_to_test:
         logger.warning(
-            f"Too many strategies ({len(all_strategies)}), "
-            f"sampling {max_strategies_to_test}"
+            f"Too many strategies ({len(all_strategies)}), " f"sampling {max_strategies_to_test}"
         )
         # Sample uniformly
         indices = np.linspace(0, len(all_strategies) - 1, max_strategies_to_test, dtype=int)
@@ -141,8 +138,7 @@ def optimize_strategy(
 
     # Rank by mean time
     mean_times = {
-        name: np.mean([r.total_time for r in results])
-        for name, results in results_dict.items()
+        name: np.mean([r.total_time for r in results]) for name, results in results_dict.items()
     }
 
     ranked_strategies = sorted(all_strategies, key=lambda s: mean_times[s.description])
@@ -174,18 +170,13 @@ def analyze_pit_window(
             Stint(compound2, pit_lap + 1, total_laps),
         ]
 
-        strategy = Strategy(
-            stints=stints,
-            description=f"{compound1}->{compound2} @ L{pit_lap}"
-        )
+        strategy = Strategy(stints=stints, description=f"{compound1}->{compound2} @ L{pit_lap}")
 
         if not strategy.validate(total_laps, min_stint):
             continue
 
         # Run fewer simulations for pit window analysis
-        quick_config = StrategyConfig(
-            **{**config.__dict__, 'n_simulations': 200}
-        )
+        quick_config = StrategyConfig(**{**config.__dict__, "n_simulations": 200})
 
         results = run_monte_carlo(
             strategy,
@@ -197,15 +188,17 @@ def analyze_pit_window(
 
         times = [r.total_time for r in results]
 
-        pit_analysis.append({
-            'pit_lap': pit_lap,
-            'mean_time': np.mean(times),
-            'std_time': np.std(times),
-            'median_time': np.median(times),
-        })
+        pit_analysis.append(
+            {
+                "pit_lap": pit_lap,
+                "mean_time": np.mean(times),
+                "std_time": np.std(times),
+                "median_time": np.median(times),
+            }
+        )
 
     return {
-        'compound1': compound1,
-        'compound2': compound2,
-        'analysis': pit_analysis,
+        "compound1": compound1,
+        "compound2": compound2,
+        "analysis": pit_analysis,
     }

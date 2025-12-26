@@ -97,16 +97,16 @@ def generate_report(
 
     # Create plots
     plot_deg = viz.plot_degradation_curves(degradation_models, config).to_html(
-        include_plotlyjs='cdn', div_id='deg_plot'
+        include_plotlyjs="cdn", div_id="deg_plot"
     )
     plot_dist = viz.plot_race_time_distributions(results_dict, config).to_html(
-        include_plotlyjs=False, div_id='dist_plot'
+        include_plotlyjs=False, div_id="dist_plot"
     )
     plot_cdf = viz.plot_cumulative_distribution(results_dict, config).to_html(
-        include_plotlyjs=False, div_id='cdf_plot'
+        include_plotlyjs=False, div_id="cdf_plot"
     )
     plot_comp = viz.plot_strategy_comparison(comparison_df, config).to_html(
-        include_plotlyjs=False, div_id='comp_plot'
+        include_plotlyjs=False, div_id="comp_plot"
     )
 
     # Find best time
@@ -132,7 +132,7 @@ def generate_report(
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(html, encoding='utf-8')
+        output_path.write_text(html, encoding="utf-8")
         logger.info(f"Report saved to: {output_path}")
 
     return html

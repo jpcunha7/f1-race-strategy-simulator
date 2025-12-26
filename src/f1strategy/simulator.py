@@ -188,25 +188,25 @@ def run_monte_carlo(
     return results
 
 
-def compare_strategies(
-    results_dict: dict[str, list[SimulationResult]]
-) -> pd.DataFrame:
+def compare_strategies(results_dict: dict[str, list[SimulationResult]]) -> pd.DataFrame:
     """Compare multiple strategies statistically."""
     comparison_data = []
 
     for strategy_name, results in results_dict.items():
         times = [r.total_time for r in results]
 
-        comparison_data.append({
-            'Strategy': strategy_name,
-            'Mean Time (s)': np.mean(times),
-            'Std Time (s)': np.std(times),
-            'Min Time (s)': np.min(times),
-            'P25 Time (s)': np.percentile(times, 25),
-            'Median Time (s)': np.median(times),
-            'P75 Time (s)': np.percentile(times, 75),
-            'Max Time (s)': np.max(times),
-            'SC Rate': np.mean([r.had_safety_car for r in results]),
-        })
+        comparison_data.append(
+            {
+                "Strategy": strategy_name,
+                "Mean Time (s)": np.mean(times),
+                "Std Time (s)": np.std(times),
+                "Min Time (s)": np.min(times),
+                "P25 Time (s)": np.percentile(times, 25),
+                "Median Time (s)": np.median(times),
+                "P75 Time (s)": np.percentile(times, 75),
+                "Max Time (s)": np.max(times),
+                "SC Rate": np.mean([r.had_safety_car for r in results]),
+            }
+        )
 
     return pd.DataFrame(comparison_data)

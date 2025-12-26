@@ -35,7 +35,7 @@ def load_race_session(
             enable_cache(str(config.cache_dir))
 
         logger.info(f"Loading race session: {year} {event}")
-        session = fastf1.get_session(year, event, 'R')
+        session = fastf1.get_session(year, event, "R")
         session.load()
         logger.info(f"Race session loaded: {session.event['EventName']}")
         return session
@@ -67,25 +67,25 @@ def extract_stints(session: Session, driver: str) -> pd.DataFrame:
         laps = laps.reset_index(drop=True)
 
         # Create stint age based on compound changes
-        laps['Compound'] = laps['Compound'].fillna('UNKNOWN')
-        laps['StintChange'] = (laps['Compound'] != laps['Compound'].shift(1)).astype(int)
-        laps['Stint'] = laps['StintChange'].cumsum()
+        laps["Compound"] = laps["Compound"].fillna("UNKNOWN")
+        laps["StintChange"] = (laps["Compound"] != laps["Compound"].shift(1)).astype(int)
+        laps["Stint"] = laps["StintChange"].cumsum()
 
         # Calculate stint age
-        laps['StintAge'] = laps.groupby('Stint').cumcount() + 1
+        laps["StintAge"] = laps.groupby("Stint").cumcount() + 1
 
         # Convert lap time to seconds
-        laps['LapTime'] = laps['LapTime'].dt.total_seconds()
+        laps["LapTime"] = laps["LapTime"].dt.total_seconds()
 
         # Flag potential outliers (in-lap, out-lap, traffic)
-        laps['IsOutlier'] = False
+        laps["IsOutlier"] = False
 
         # Mark pit laps
-        laps.loc[laps['PitInTime'].notna(), 'IsOutlier'] = True
-        laps.loc[laps['PitOutTime'].notna(), 'IsOutlier'] = True
+        laps.loc[laps["PitInTime"].notna(), "IsOutlier"] = True
+        laps.loc[laps["PitOutTime"].notna(), "IsOutlier"] = True
 
         # Select relevant columns
-        stint_data = laps[['Stint', 'Compound', 'LapNumber', 'LapTime', 'StintAge', 'IsOutlier']]
+        stint_data = laps[["Stint", "Compound", "LapNumber", "LapTime", "StintAge", "IsOutlier"]]
 
         logger.info(f"Extracted {len(stint_data)} laps across {laps['Stint'].nunique()} stints")
 
@@ -99,12 +99,12 @@ def extract_stints(session: Session, driver: str) -> pd.DataFrame:
 
 def get_race_info(session: Session) -> dict:
     """Extract race information."""
-    total_laps = int(session.total_laps) if hasattr(session, 'total_laps') else 50
+    total_laps = int(session.total_laps) if hasattr(session, "total_laps") else 50
 
     return {
-        "event_name": session.event.get('EventName', 'Unknown'),
-        "location": session.event.get('Location', 'Unknown'),
-        "country": session.event.get('Country', 'Unknown'),
-        "date": str(session.date) if session.date else 'Unknown',
+        "event_name": session.event.get("EventName", "Unknown"),
+        "location": session.event.get("Location", "Unknown"),
+        "country": session.event.get("Country", "Unknown"),
+        "date": str(session.date) if session.date else "Unknown",
         "total_laps": total_laps,
     }

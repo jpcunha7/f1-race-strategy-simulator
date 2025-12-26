@@ -19,14 +19,16 @@ def create_mock_stint_data(compound: str = "SOFT", n_laps: int = 20):
 
     lap_times = base_time + deg_rate * stint_ages + np.random.normal(0, 0.2, n_laps)
 
-    return pd.DataFrame({
-        'Stint': [1] * n_laps,
-        'Compound': [compound] * n_laps,
-        'LapNumber': np.arange(1, n_laps + 1),
-        'LapTime': lap_times,
-        'StintAge': stint_ages,
-        'IsOutlier': [False] * n_laps,
-    })
+    return pd.DataFrame(
+        {
+            "Stint": [1] * n_laps,
+            "Compound": [compound] * n_laps,
+            "LapNumber": np.arange(1, n_laps + 1),
+            "LapTime": lap_times,
+            "StintAge": stint_ages,
+            "IsOutlier": [False] * n_laps,
+        }
+    )
 
 
 class TestDegradationModel:

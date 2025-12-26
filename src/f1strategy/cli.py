@@ -45,7 +45,7 @@ def run_strategy_analysis(args: argparse.Namespace) -> int:
         logger.info("Optimizing strategies...")
         ranked_strategies, results_dict = optimizer.optimize_strategy(
             deg_models,
-            race_info['total_laps'],
+            race_info["total_laps"],
             config,
         )
 
@@ -59,20 +59,20 @@ def run_strategy_analysis(args: argparse.Namespace) -> int:
 
         # Save JSON summary
         summary = {
-            'race_info': race_info,
-            'driver': args.driver,
-            'best_strategy': ranked_strategies[0].description,
-            'comparison': comparison_df.to_dict('records'),
+            "race_info": race_info,
+            "driver": args.driver,
+            "best_strategy": ranked_strategies[0].description,
+            "comparison": comparison_df.to_dict("records"),
         }
 
-        json_path = output_dir / 'summary.json'
-        with open(json_path, 'w') as f:
+        json_path = output_dir / "summary.json"
+        with open(json_path, "w") as f:
             json.dump(summary, f, indent=2)
 
         logger.info(f"Summary saved to: {json_path}")
 
         # Generate HTML report
-        report_path = output_dir / 'report.html'
+        report_path = output_dir / "report.html"
         report.generate_report(
             deg_models,
             results_dict,
@@ -105,26 +105,26 @@ Author: João Pedro Cunha
         """,
     )
 
-    subparsers = parser.add_subparsers(dest='command')
+    subparsers = parser.add_subparsers(dest="command")
 
     # Run command
-    run_parser = subparsers.add_parser('run', help='Run strategy analysis')
-    run_parser.add_argument('--year', type=int, required=True)
-    run_parser.add_argument('--event', type=str, required=True)
-    run_parser.add_argument('--driver', type=str, required=True)
-    run_parser.add_argument('--n-sims', type=int, default=1000)
-    run_parser.add_argument('--seed', type=int, default=42)
-    run_parser.add_argument('--run-id', type=str)
-    run_parser.add_argument('--verbose', '-v', action='store_true')
+    run_parser = subparsers.add_parser("run", help="Run strategy analysis")
+    run_parser.add_argument("--year", type=int, required=True)
+    run_parser.add_argument("--event", type=str, required=True)
+    run_parser.add_argument("--driver", type=str, required=True)
+    run_parser.add_argument("--n-sims", type=int, default=1000)
+    run_parser.add_argument("--seed", type=int, default=42)
+    run_parser.add_argument("--run-id", type=str)
+    run_parser.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args()
 
-    if args.command == 'run':
+    if args.command == "run":
         return run_strategy_analysis(args)
     else:
         parser.print_help()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

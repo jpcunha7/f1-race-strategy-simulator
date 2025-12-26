@@ -21,7 +21,7 @@ def create_mock_model(compound: str = "SOFT"):
         deg_rate_std=0.01,
         r_squared=0.95,
         n_samples=100,
-        coefficients={'intercept': 90.0, 'slope': 0.05},
+        coefficients={"intercept": 90.0, "slope": 0.05},
     )
 
 

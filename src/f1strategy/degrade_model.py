@@ -35,8 +35,8 @@ class DegradationModel:
         if self.model_type == "linear":
             return self.baseline_laptime + self.deg_rate * stint_age
         elif self.model_type == "quadratic":
-            a = self.coefficients.get('a', 0)
-            return self.baseline_laptime + self.deg_rate * stint_age + a * (stint_age ** 2)
+            a = self.coefficients.get("a", 0)
+            return self.baseline_laptime + self.deg_rate * stint_age + a * (stint_age**2)
         else:
             return self.baseline_laptime + self.deg_rate * stint_age
 
@@ -47,11 +47,7 @@ class DegradationModel:
         return base_prediction + noise
 
 
-def remove_outliers(
-    data: pd.DataFrame,
-    column: str,
-    threshold: float = 3.0
-) -> pd.DataFrame:
+def remove_outliers(data: pd.DataFrame, column: str, threshold: float = 3.0) -> pd.DataFrame:
     """Remove outliers using z-score method."""
     z_scores = np.abs(stats.zscore(data[column]))
     return data[z_scores < threshold]
@@ -65,28 +61,28 @@ def fit_degradation_model(
     """Fit degradation model for a specific compound."""
     try:
         # Filter for this compound
-        compound_data = stint_data[stint_data['Compound'] == compound].copy()
+        compound_data = stint_data[stint_data["Compound"] == compound].copy()
 
         if compound_data.empty:
             logger.warning(f"No data for compound {compound}")
             return None
 
         # Remove outliers and pit laps
-        clean_data = compound_data[~compound_data['IsOutlier']].copy()
+        clean_data = compound_data[~compound_data["IsOutlier"]].copy()
 
         if len(clean_data) < 5:
             logger.warning(f"Insufficient clean data for {compound}")
             return None
 
         # Remove statistical outliers based on lap time
-        clean_data = remove_outliers(clean_data, 'LapTime', config.outlier_threshold)
+        clean_data = remove_outliers(clean_data, "LapTime", config.outlier_threshold)
 
         if len(clean_data) < 5:
             logger.warning(f"Insufficient data after outlier removal for {compound}")
             return None
 
-        X = clean_data['StintAge'].values.reshape(-1, 1)
-        y = clean_data['LapTime'].values
+        X = clean_data["StintAge"].values.reshape(-1, 1)
+        y = clean_data["LapTime"].values
 
         # Fit model based on type
         if config.degradation_model_type == "linear":
@@ -107,7 +103,7 @@ def fit_degradation_model(
             residuals = y - y_pred
             deg_rate_std = float(np.std(residuals / X.flatten()))
 
-            coefficients = {'intercept': baseline, 'slope': deg_rate}
+            coefficients = {"intercept": baseline, "slope": deg_rate}
 
         elif config.degradation_model_type == "quadratic":
             X_quad = np.column_stack([X, X**2])
@@ -126,7 +122,7 @@ def fit_degradation_model(
             residuals = y - y_pred
             deg_rate_std = float(np.std(residuals / X.flatten()))
 
-            coefficients = {'intercept': baseline, 'slope': deg_rate, 'a': quad_coef}
+            coefficients = {"intercept": baseline, "slope": deg_rate, "a": quad_coef}
 
         else:  # piecewise - simplified as linear for now
             model = LinearRegression()
@@ -143,7 +139,7 @@ def fit_degradation_model(
             residuals = y - y_pred
             deg_rate_std = float(np.std(residuals / X.flatten()))
 
-            coefficients = {'intercept': baseline, 'slope': deg_rate}
+            coefficients = {"intercept": baseline, "slope": deg_rate}
 
         logger.info(
             f"{compound}: baseline={baseline:.2f}s, "
@@ -171,8 +167,8 @@ def fit_all_compounds(
     config: StrategyConfig = DEFAULT_CONFIG,
 ) -> dict[str, DegradationModel]:
     """Fit degradation models for all compounds in the data."""
-    compounds = stint_data['Compound'].unique()
-    compounds = [c for c in compounds if c != 'UNKNOWN']
+    compounds = stint_data["Compound"].unique()
+    compounds = [c for c in compounds if c != "UNKNOWN"]
 
     models = {}
     for compound in compounds:
