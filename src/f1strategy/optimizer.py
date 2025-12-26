@@ -317,9 +317,7 @@ def calculate_risk_profiles(
 
     for sim_idx in range(n_sims):
         # Get time for each strategy in this simulation
-        sim_times = {
-            name: times[sim_idx] for name, times in all_strategy_times.items()
-        }
+        sim_times = {name: times[sim_idx] for name, times in all_strategy_times.items()}
         fastest_strategy = min(sim_times, key=sim_times.get)
         fastest_counts[fastest_strategy] += 1
 
@@ -382,7 +380,9 @@ def create_strategy_executive_summary(
         confidence = "High" if ci_width < 5.0 else "Medium" if ci_width < 10.0 else "Low"
 
         summary_lines.append(f"\n{rank}. {name}")
-        summary_lines.append(f"   Expected Time: {profile.mean_time:.2f}s ± {profile.std_time:.2f}s")
+        summary_lines.append(
+            f"   Expected Time: {profile.mean_time:.2f}s ± {profile.std_time:.2f}s"
+        )
         summary_lines.append(
             f"   Best Case: {profile.best_case:.2f}s  |  Worst Case: {profile.worst_case:.2f}s"
         )

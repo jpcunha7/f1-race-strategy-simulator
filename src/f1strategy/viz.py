@@ -57,9 +57,9 @@ def plot_degradation_curves(
                 mode="lines",
                 name=f"{compound} ({model.model_type})",
                 line=dict(width=3, color=color),
-                hovertemplate="<b>%{fullData.name}</b><br>" +
-                             "Stint Age: %{x} laps<br>" +
-                             "Lap Time: %{y:.2f}s<extra></extra>",
+                hovertemplate="<b>%{fullData.name}</b><br>"
+                + "Stint Age: %{x} laps<br>"
+                + "Lap Time: %{y:.2f}s<extra></extra>",
             )
         )
 
@@ -285,9 +285,7 @@ def plot_strategy_comparison(
                 color=colors,
                 line=dict(color="white", width=1),
             ),
-            hovertemplate="<b>%{x}</b><br>" +
-                         "Mean: %{y:.2f}s<br>" +
-                         "<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>" + "Mean: %{y:.2f}s<br>" + "<extra></extra>",
         )
     )
 
@@ -327,10 +325,7 @@ def plot_risk_profiles(
     Shows best-case, mean, and worst-case scenarios for each strategy.
     """
     # Sort by mean time
-    sorted_profiles = sorted(
-        risk_profiles.items(),
-        key=lambda x: x[1].mean_time
-    )[:top_n]
+    sorted_profiles = sorted(risk_profiles.items(), key=lambda x: x[1].mean_time)[:top_n]
 
     strategies = [name for name, _ in sorted_profiles]
     means = [profile.mean_time for _, profile in sorted_profiles]
@@ -353,9 +348,7 @@ def plot_risk_profiles(
                 arrayminus=[m - b for m, b in zip(means, best_cases)],
                 color="rgba(255,255,255,0.3)",
             ),
-            hovertemplate="<b>%{x}</b><br>" +
-                         "Mean: %{y:.2f}s<br>" +
-                         "<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>" + "Mean: %{y:.2f}s<br>" + "<extra></extra>",
         )
     )
 

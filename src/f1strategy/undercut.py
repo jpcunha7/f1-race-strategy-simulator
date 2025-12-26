@@ -74,9 +74,7 @@ def calculate_warmup_penalty(
 
     if config.warmup_model == "exponential":
         # Exponential decay model
-        penalty = config.warmup_penalty_initial * np.exp(
-            -laps_into_stint / config.warmup_decay_tau
-        )
+        penalty = config.warmup_penalty_initial * np.exp(-laps_into_stint / config.warmup_decay_tau)
         return float(penalty)
     else:
         # Step function model
@@ -180,9 +178,10 @@ def estimate_undercut_gain(
     breakdown["degradation_advantage"] = total_degradation_advantage
 
     # Uncertainty: use model uncertainty
-    uncertainty = np.sqrt(
-        your_new_model.deg_rate_std**2 + opponent_model.deg_rate_std**2
-    ) * n_laps_to_simulate
+    uncertainty = (
+        np.sqrt(your_new_model.deg_rate_std**2 + opponent_model.deg_rate_std**2)
+        * n_laps_to_simulate
+    )
 
     ci_lower = net_gain - 1.96 * uncertainty
     ci_upper = net_gain + 1.96 * uncertainty
@@ -284,9 +283,10 @@ def estimate_overcut_gain(
     breakdown["opponent_warmup_penalty"] = total_opponent_warmup
     breakdown["degradation_difference"] = total_degradation_difference
 
-    uncertainty = np.sqrt(
-        your_model.deg_rate_std**2 + opponent_new_model.deg_rate_std**2
-    ) * n_laps_to_simulate
+    uncertainty = (
+        np.sqrt(your_model.deg_rate_std**2 + opponent_new_model.deg_rate_std**2)
+        * n_laps_to_simulate
+    )
 
     ci_lower = net_gain - 1.96 * uncertainty
     ci_upper = net_gain + 1.96 * uncertainty
@@ -487,9 +487,7 @@ def find_optimal_undercut_window(
             )
 
             gains.append(analysis.estimated_gain)
-            uncertainty = (
-                analysis.confidence_interval[1] - analysis.confidence_interval[0]
-            ) / 2
+            uncertainty = (analysis.confidence_interval[1] - analysis.confidence_interval[0]) / 2
             uncertainties.append(uncertainty)
 
         except Exception:
@@ -524,8 +522,7 @@ def find_optimal_undercut_window(
         risk = "high"
 
     logger.info(
-        f"Optimal undercut window: Lap {optimal_lap} "
-        f"(+{expected_gain:.2f}s, risk={risk})"
+        f"Optimal undercut window: Lap {optimal_lap} " f"(+{expected_gain:.2f}s, risk={risk})"
     )
 
     return PitWindowRecommendation(

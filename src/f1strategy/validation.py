@@ -50,9 +50,7 @@ class ValidationResult:
     predictions_df: pd.DataFrame  # actual vs predicted for plotting
 
 
-def identify_traffic_laps(
-    lap_times: np.ndarray, threshold: float = 2.5
-) -> np.ndarray:
+def identify_traffic_laps(lap_times: np.ndarray, threshold: float = 2.5) -> np.ndarray:
     """Identify laps likely affected by traffic using statistical outlier detection.
 
     Physics reasoning: Traffic causes significant lap time increases beyond
@@ -122,8 +120,7 @@ def validate_race(
     test_data = stint_data[stint_data["Stint"].isin(test_stints)]
 
     logger.info(
-        f"Train/test split: {len(train_stints)} train stints, "
-        f"{len(test_stints)} test stints"
+        f"Train/test split: {len(train_stints)} train stints, " f"{len(test_stints)} test stints"
     )
 
     # Fit models on training data
@@ -173,9 +170,7 @@ def validate_race(
 
         # Identify traffic laps in test data
         residuals = actuals - predictions
-        traffic_mask = identify_traffic_laps(
-            residuals, config.traffic_detection_threshold
-        )
+        traffic_mask = identify_traffic_laps(residuals, config.traffic_detection_threshold)
         n_traffic = np.sum(traffic_mask)
 
         # Calculate metrics (excluding traffic laps)
@@ -195,9 +190,7 @@ def validate_race(
         for age in np.unique(stint_ages):
             age_mask = (np.array(stint_ages) == age) & clean_mask
             if np.sum(age_mask) > 0:
-                age_mae = mean_absolute_error(
-                    actuals[age_mask], predictions[age_mask]
-                )
+                age_mae = mean_absolute_error(actuals[age_mask], predictions[age_mask])
                 mae_by_age[int(age)] = float(age_mae)
 
         # R-squared on test set
@@ -244,9 +237,7 @@ def validate_race(
     clean_preds = predictions_df[~predictions_df["IsTraffic"]]
 
     overall_mae = mean_absolute_error(clean_preds["Actual"], clean_preds["Predicted"])
-    overall_rmse = np.sqrt(
-        mean_squared_error(clean_preds["Actual"], clean_preds["Predicted"])
-    )
+    overall_rmse = np.sqrt(mean_squared_error(clean_preds["Actual"], clean_preds["Predicted"]))
 
     logger.info(f"Overall validation: MAE={overall_mae:.3f}s, RMSE={overall_rmse:.3f}s")
 
@@ -369,9 +360,7 @@ def create_validation_plots(
 
     # 4. MAE by compound
     compounds = list(validation_result.metrics_by_compound.keys())
-    maes = [
-        validation_result.metrics_by_compound[c].mae for c in compounds
-    ]
+    maes = [validation_result.metrics_by_compound[c].mae for c in compounds]
 
     fig.add_trace(
         go.Bar(

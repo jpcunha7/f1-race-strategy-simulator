@@ -244,7 +244,7 @@ def simulate_race(
             # Apply SC/VSC effect
             if lap in safety_effects:
                 reduction_pct, _ = safety_effects[lap]
-                lap_time *= (1.0 - reduction_pct)
+                lap_time *= 1.0 - reduction_pct
 
             lap_times.append(lap_time)
             total_time += lap_time
@@ -297,9 +297,7 @@ def calculate_warmup_penalty(
         return 0.0
 
     if config.warmup_model == "exponential":
-        penalty = config.warmup_penalty_initial * np.exp(
-            -stint_age / config.warmup_decay_tau
-        )
+        penalty = config.warmup_penalty_initial * np.exp(-stint_age / config.warmup_decay_tau)
         return float(penalty)
     else:
         # Step function

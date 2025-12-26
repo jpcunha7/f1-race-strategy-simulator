@@ -36,7 +36,9 @@ class TestDegradationModel:
     def test_fit_linear_model(self):
         """Test fitting a linear degradation model."""
         data = create_mock_stint_data()
-        config = StrategyConfig(degradation_model_type="linear")
+        config = StrategyConfig(
+            degradation_model_type="linear", auto_select_degradation_model=False
+        )
 
         model = fit_degradation_model(data, "SOFT", config)
 

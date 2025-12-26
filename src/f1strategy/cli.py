@@ -262,11 +262,7 @@ Author: João Pedro Cunha
     opt_parser.add_argument("--seed", type=int, default=42, help="Random seed")
     opt_parser.add_argument("--run-id", type=str, help="Custom run identifier")
     opt_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    opt_parser.add_argument(
-        "--quick",
-        action="store_true",
-        help="Quick mode: fewer simulations"
-    )
+    opt_parser.add_argument("--quick", action="store_true", help="Quick mode: fewer simulations")
 
     # Validate command
     val_parser = subparsers.add_parser("validate", help="Validate degradation models")
@@ -299,7 +295,7 @@ Author: João Pedro Cunha
     args = parser.parse_args()
 
     # Quick mode adjustments
-    if hasattr(args, 'quick') and args.quick:
+    if hasattr(args, "quick") and args.quick:
         args.n_sims = 500
 
     # Route to appropriate handler
