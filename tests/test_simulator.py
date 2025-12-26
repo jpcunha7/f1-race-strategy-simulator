@@ -4,7 +4,6 @@ Author: João Pedro Cunha
 """
 
 import numpy as np
-import pytest
 
 from f1strategy.simulator import Stint, Strategy, simulate_race
 from f1strategy.degrade_model import DegradationModel

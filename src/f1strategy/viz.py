@@ -8,7 +8,6 @@ import logging
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from f1strategy.config import DEFAULT_CONFIG, StrategyConfig
 from f1strategy.degrade_model import DegradationModel
@@ -48,7 +47,7 @@ def plot_degradation_curves(
                 x=list(stint_ages) + list(reversed(stint_ages)),
                 y=upper_bound + list(reversed(lower_bound)),
                 fill="toself",
-                fillcolor=f"rgba(0,100,200,0.2)",
+                fillcolor="rgba(0,100,200,0.2)",
                 line=dict(color="rgba(255,255,255,0)"),
                 showlegend=False,
                 hoverinfo="skip",
@@ -160,7 +159,6 @@ def plot_pit_window_heatmap(
     # Find optimal pit lap
     optimal_idx = np.argmin(mean_times)
     optimal_lap = pit_laps[optimal_idx]
-    optimal_time = mean_times[optimal_idx]
 
     fig.add_vline(
         x=optimal_lap,

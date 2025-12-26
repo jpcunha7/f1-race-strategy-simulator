@@ -168,7 +168,6 @@ def run_monte_carlo(
 ) -> list[SimulationResult]:
     """Run Monte Carlo simulation for a strategy."""
     results = []
-    rng = np.random.default_rng(config.random_seed)
 
     iterator = range(config.n_simulations)
     if show_progress:

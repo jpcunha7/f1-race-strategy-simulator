@@ -5,9 +5,8 @@ Author: João Pedro Cunha
 
 import numpy as np
 import pandas as pd
-import pytest
 
-from f1strategy.degrade_model import fit_degradation_model, DegradationModel
+from f1strategy.degrade_model import fit_degradation_model
 from f1strategy.config import StrategyConfig
 
 

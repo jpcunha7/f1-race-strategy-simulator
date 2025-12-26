@@ -4,7 +4,6 @@ Author: João Pedro Cunha
 """
 
 import logging
-from typing import Optional
 
 import numpy as np
 
