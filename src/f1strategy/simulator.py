@@ -62,6 +62,15 @@ class Strategy:
 
 
 @dataclass
+class SafetyCarEvent:
+    """Safety car or VSC event."""
+
+    event_type: str  # "SC" or "VSC"
+    start_lap: int
+    duration: int  # laps
+
+
+@dataclass
 class SimulationResult:
     """Result of a single race simulation."""
 
@@ -71,6 +80,83 @@ class SimulationResult:
     had_safety_car: bool
     sc_start_lap: Optional[int]
     sc_duration: Optional[int]
+    safety_events: list[SafetyCarEvent]  # All SC/VSC events
+
+
+def sample_sc_vsc_events(
+    total_laps: int,
+    config: StrategyConfig,
+    rng: np.random.Generator,
+) -> list[SafetyCarEvent]:
+    """Sample SC and VSC events for a race.
+
+    Physics reasoning: SC and VSC are independent random events that
+    can occur during a race. SC is triggered by crashes/incidents requiring
+    track marshals. VSC is for less severe incidents.
+
+    SC vs VSC differences:
+    - SC: Full safety car, leads pack, 30% lap time reduction, large pit advantage
+    - VSC: Virtual safety car, no physical car, 40% lap time reduction, smaller pit advantage
+
+    Args:
+        total_laps: Total race laps
+        config: Strategy configuration
+        rng: Random number generator
+
+    Returns:
+        List of safety car events
+    """
+    events = []
+
+    # Sample number of SC events
+    if rng.random() < config.safety_car_prob:
+        n_sc = rng.integers(1, config.max_sc_events + 1)
+
+        for _ in range(n_sc):
+            # SC can't happen in first 3 or last 5 laps
+            start_lap = rng.integers(4, max(5, total_laps - 5))
+            duration = int(rng.normal(config.sc_duration_mean, config.sc_duration_std))
+            duration = max(2, min(duration, total_laps - start_lap))
+
+            events.append(
+                SafetyCarEvent(
+                    event_type="SC",
+                    start_lap=start_lap,
+                    duration=duration,
+                )
+            )
+
+    # Sample number of VSC events
+    if rng.random() < config.vsc_prob:
+        n_vsc = rng.integers(1, config.max_vsc_events + 1)
+
+        for _ in range(n_vsc):
+            start_lap = rng.integers(4, max(5, total_laps - 5))
+            duration = int(rng.normal(config.vsc_duration_mean, config.vsc_duration_std))
+            duration = max(1, min(duration, total_laps - start_lap))
+
+            events.append(
+                SafetyCarEvent(
+                    event_type="VSC",
+                    start_lap=start_lap,
+                    duration=duration,
+                )
+            )
+
+    # Sort by start lap
+    events.sort(key=lambda e: e.start_lap)
+
+    # Remove overlapping events (keep first)
+    filtered_events = []
+    occupied_laps = set()
+
+    for event in events:
+        event_laps = set(range(event.start_lap, event.start_lap + event.duration))
+        if not event_laps.intersection(occupied_laps):
+            filtered_events.append(event)
+            occupied_laps.update(event_laps)
+
+    return filtered_events
 
 
 def simulate_safety_car(
@@ -78,13 +164,15 @@ def simulate_safety_car(
     config: StrategyConfig,
     rng: np.random.Generator,
 ) -> tuple[bool, Optional[int], Optional[int]]:
-    """Simulate if/when a safety car occurs."""
-    if rng.random() < config.safety_car_prob:
-        # SC occurs - pick random lap (not first 3 or last 5)
-        sc_start = rng.integers(4, max(5, total_laps - 5))
-        sc_duration = int(rng.normal(config.sc_duration_mean, config.sc_duration_std))
-        sc_duration = max(2, min(sc_duration, total_laps - sc_start))
-        return True, sc_start, sc_duration
+    """Simulate if/when a safety car occurs.
+
+    Legacy function for backward compatibility. Use sample_sc_vsc_events for new code.
+    """
+    events = sample_sc_vsc_events(total_laps, config, rng)
+    sc_events = [e for e in events if e.event_type == "SC"]
+
+    if sc_events:
+        return True, sc_events[0].start_lap, sc_events[0].duration
     return False, None, None
 
 
@@ -95,18 +183,35 @@ def simulate_race(
     config: StrategyConfig = DEFAULT_CONFIG,
     rng: Optional[np.random.Generator] = None,
 ) -> SimulationResult:
-    """Simulate a single race with given strategy."""
+    """Simulate a single race with given strategy.
+
+    Enhanced with SC/VSC modeling and warmup penalties.
+    """
     if rng is None:
         rng = np.random.default_rng(config.random_seed)
 
     lap_times = []
     total_time = 0.0
 
-    # Simulate safety car
-    had_sc, sc_start, sc_duration = simulate_safety_car(total_laps, config, rng)
-    sc_laps = set()
-    if had_sc and sc_start is not None and sc_duration is not None:
-        sc_laps = set(range(sc_start, sc_start + sc_duration))
+    # Sample SC/VSC events
+    safety_events = sample_sc_vsc_events(total_laps, config, rng)
+
+    # Create lookup for safety event effects by lap
+    safety_effects = {}  # lap -> (reduction_factor, pit_advantage)
+    for event in safety_events:
+        for lap_offset in range(event.duration):
+            lap = event.start_lap + lap_offset
+
+            if event.event_type == "SC":
+                safety_effects[lap] = (
+                    config.sc_lap_time_reduction,
+                    config.sc_pit_advantage,
+                )
+            else:  # VSC
+                safety_effects[lap] = (
+                    config.vsc_lap_time_reduction,
+                    config.vsc_pit_advantage,
+                )
 
     # Simulate each stint
     for stint in strategy.stints:
@@ -131,9 +236,15 @@ def simulate_race(
             else:
                 lap_time = base_time + deg_rate * stint_age + rng.normal(0, 0.2)
 
-            # Apply SC effect
-            if lap in sc_laps:
-                lap_time -= config.sc_lap_time_reduction
+            # Apply warmup penalty (physics: cold tires = less grip)
+            if stint_age <= 3:  # First few laps on new tires
+                warmup_penalty = calculate_warmup_penalty(stint_age, config)
+                lap_time += warmup_penalty
+
+            # Apply SC/VSC effect
+            if lap in safety_effects:
+                reduction_pct, _ = safety_effects[lap]
+                lap_time *= (1.0 - reduction_pct)
 
             lap_times.append(lap_time)
             total_time += lap_time
@@ -142,12 +253,19 @@ def simulate_race(
         if stint != strategy.stints[-1]:
             pit_loss = rng.normal(config.pit_loss_mean, config.pit_loss_std)
 
-            # Check if pit during SC
+            # Check if pit during SC/VSC
             pit_lap = stint.end_lap
-            if pit_lap in sc_laps:
-                pit_loss -= config.sc_pit_advantage
+            if pit_lap in safety_effects:
+                _, pit_advantage = safety_effects[pit_lap]
+                pit_loss -= pit_advantage
 
             total_time += pit_loss
+
+    # Legacy compatibility
+    sc_events = [e for e in safety_events if e.event_type == "SC"]
+    had_sc = len(sc_events) > 0
+    sc_start = sc_events[0].start_lap if sc_events else None
+    sc_duration = sc_events[0].duration if sc_events else None
 
     return SimulationResult(
         strategy=strategy,
@@ -156,7 +274,39 @@ def simulate_race(
         had_safety_car=had_sc,
         sc_start_lap=sc_start,
         sc_duration=sc_duration,
+        safety_events=safety_events,
     )
+
+
+def calculate_warmup_penalty(
+    stint_age: int,
+    config: StrategyConfig,
+) -> float:
+    """Calculate tire warmup penalty for given stint age.
+
+    Imported from undercut module logic for use in race simulation.
+
+    Args:
+        stint_age: Lap number within stint
+        config: Strategy configuration
+
+    Returns:
+        Warmup penalty in seconds
+    """
+    if stint_age < 1:
+        return 0.0
+
+    if config.warmup_model == "exponential":
+        penalty = config.warmup_penalty_initial * np.exp(
+            -stint_age / config.warmup_decay_tau
+        )
+        return float(penalty)
+    else:
+        # Step function
+        if stint_age <= config.warmup_step_laps:
+            return config.warmup_penalty_initial
+        else:
+            return 0.0
 
 
 def run_monte_carlo(

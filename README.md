@@ -1,314 +1,377 @@
 # F1 Race Strategy Simulator
 
-**Degradation Modeling + Pit Stop Optimization with Monte Carlo Uncertainty**
+**Professional Strategy Analysis Tool for Formula 1**
 
-A data science tool for simulating and optimizing Formula 1 race strategies using historical tire degradation data, Monte Carlo simulation, and physics-based reasoning.
+A comprehensive Monte Carlo simulation system for F1 race strategy optimization, featuring physics-based tire degradation modeling, undercut/overcut analysis, and rigorous model validation.
 
 **Author:** João Pedro Cunha
-**License:** MIT
 
 ---
 
 ## Overview
 
-This simulator helps answer questions like:
-- *What's the optimal pit stop strategy for this race?*
-- *Should I do a 1-stop or 2-stop strategy?*
-- *What's the best pit window given tire degradation?*
-- *How does safety car probability affect strategy choice?*
+This tool provides race engineers and strategists with data-driven insights for optimal pit strategy decisions. Built on statistical modeling and probabilistic simulation, it accounts for tire degradation, safety car events, pit stop timing, and strategic interactions.
 
-**Key Features:**
-- 📊 **Tire Degradation Modeling**: Learn degradation curves from historical race stints
-- 🎲 **Monte Carlo Simulation**: Account for uncertainty in degradation, pit loss, and safety cars
-- ⚡ **Strategy Optimization**: Grid search over pit windows and compound combinations
-- 📈 **Rich Visualizations**: Degradation curves, race time distributions, pit window heatmaps
-- 🎯 **Physics-Based**: Models grip loss → lap time increase
+### Key Features
 
-**100% Free**: Uses only open-source tools and free FastF1 data.
+**Core Analysis:**
+- Automatic degradation model selection (linear/quadratic/piecewise)
+- Monte Carlo simulation with uncertainty quantification
+- Strategy optimization with risk assessment
+- Model validation against historical performance
+
+**Strategic Tools:**
+- Undercut/overcut window analysis with warmup penalties
+- Safety Car and Virtual Safety Car modeling
+- Traffic penalty estimation
+- Sensitivity analysis for decision robustness
+
+**Professional Interface:**
+- Multi-page Streamlit dashboard
+- Command-line interface with validation and undercut commands
+- Executive summaries and risk profiles
+- Publication-quality visualizations
 
 ---
 
 ## Installation
 
-### Prerequisites
-- Python 3.10 or higher
-- Poetry (recommended) or pip
-
-### Using Poetry
-
 ```bash
-git clone https://github.com/yourusername/f1-race-strategy-simulator.git
+# Clone repository
+git clone https://github.com/jpcunha7/f1-race-strategy-simulator.git
 cd f1-race-strategy-simulator
-poetry install
-poetry shell
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install package
+pip install -e .
 ```
+
+### Requirements
+
+- Python 3.9+
+- fastf1
+- numpy, pandas, scipy, scikit-learn
+- plotly
+- streamlit
+- tqdm
 
 ---
 
-## Quick Start
+## Usage
 
 ### Streamlit Dashboard
 
-```bash
-poetry run streamlit run app/streamlit_app.py
-```
-
-Then open http://localhost:8501
-
-**Usage:**
-1. Select year, event (e.g., "Bahrain"), and driver code
-2. Configure simulation settings (number of simulations, random seed)
-3. Click "Run Analysis"
-4. Explore results across multiple tabs
-5. Download HTML report
-
-### CLI Tool
+Launch the professional multi-page interface:
 
 ```bash
-# Basic usage
-poetry run f1strategy run --year 2024 --event "Bahrain" --driver "VER" --n-sims 2000
-
-# With custom seed
-poetry run f1strategy run --year 2023 --event "Monaco" --driver "LEC" --n-sims 1000 --seed 123
+streamlit run app/streamlit_app.py
 ```
 
-**Output:** Creates a directory in `outputs/<run_id>/` containing:
-- `summary.json`: Strategy comparison data
-- `report.html`: Interactive HTML report with all visualizations
+**Pages:**
+1. **Overview** - Executive summary and top strategy recommendations
+2. **Degradation Models** - Tire degradation curves with model parameters
+3. **Model Validation** - Prediction accuracy and credibility metrics
+4. **Strategy Comparison** - Performance comparison with risk profiles
+5. **Pit Window Explorer** - Interactive undercut/overcut analysis
+6. **Scenario Analysis** - Sensitivity testing (planned)
+
+### Command-Line Interface
+
+**Full Strategy Optimization:**
+```bash
+f1strategy optimize --year 2024 --event "Bahrain" --driver "VER" --n-sims 2000
+```
+
+**Model Validation:**
+```bash
+f1strategy validate --year 2024 --event "Bahrain" --driver "VER"
+```
+
+**Undercut Analysis:**
+```bash
+f1strategy undercut --year 2024 --event "Bahrain" --driver "VER" --lap 15
+```
+
+**Quick Mode:**
+```bash
+f1strategy optimize --year 2024 --event "Monaco" --driver "LEC" --quick
+```
 
 ---
 
-## Modeling Approach
+## Technical Architecture
 
-### 1. Tire Degradation Model
+### 1. Tire Degradation Modeling
 
-**Physics Intuition:**
-As tires wear, rubber temperature and grip decrease → lap times increase
+**Physics Reasoning:**
+Tire degradation causes lap time increase due to progressive grip loss. Different compounds and track conditions produce distinct degradation patterns.
 
-**Model:**
-```
-LapTime(stint_age) = baseline + degradation_rate * stint_age
-```
+**Model Types:**
+- **Linear:** Constant degradation rate (most common)
+  - `LapTime(age) = baseline + rate × age`
+- **Quadratic:** Accelerating degradation (tire cliff)
+  - `LapTime(age) = baseline + rate × age + a × age²`
+- **Piecewise:** Different rates in early vs late stint
+  - Separate linear models before/after breakpoint
 
-**Options:**
-- **Linear**: `LapTime = a + b * age`
-- **Quadratic**: `LapTime = a + b * age + c * age²`
-- **Piecewise**: Different rates for early/late stint
+**Selection:**
+Automatic cross-validated model selection chooses the best fit for each compound.
 
-**Fitting:**
-- Uses robust regression (Huber) to handle outliers
-- Automatically filters pit laps, out-laps, and statistical outliers
-- Separate model per compound (SOFT, MEDIUM, HARD)
-- Uncertainty captured via residual standard deviation
-
-**Example Output:**
-```
-SOFT: baseline=89.2s, deg_rate=0.048s/lap, R²=0.91
-MEDIUM: baseline=89.8s, deg_rate=0.032s/lap, R²=0.88
-```
+**Implementation:** `/src/f1strategy/degrade_model.py`
 
 ### 2. Race Simulation
 
-Each simulation:
-1. **Lap-by-lap execution**: For each stint, predict lap time using degradation model + noise
-2. **Pit stops**: Add pit loss (sampled from normal distribution)
-3. **Safety car**: Probabilistic SC events reduce lap times + provide pit advantage
-4. **Total time**: Sum all lap times + pit losses
+Monte Carlo approach samples from degradation uncertainty, pit stop variability, and safety car probabilities to generate race time distributions.
 
-**Uncertainty Sources:**
-- Degradation variation (around fitted curve)
-- Pit loss variation (typical: 22±1.5s)
-- Safety car occurrence and timing
-- Safety car duration
+**Key Features:**
+- Tire warmup penalties (exponential or step model)
+- SC/VSC events with distinct characteristics
+- Pit loss with normal distribution
+- Deterministic with seeds for reproducibility
 
-### 3. Strategy Optimization
+**Implementation:** `/src/f1strategy/simulator.py`
 
-**Grid Search:**
-- Generate all valid 1-stop and 2-stop strategies
-- For each: run Monte Carlo simulation (typically 1000-5000 iterations)
-- Rank by mean race time
-- Return top strategies with confidence intervals
+### 3. Model Validation
 
-**Constraints:**
-- Minimum stint length (configurable, default: 5 laps)
-- Total laps must equal race distance
-- Optional: require two different compounds
+**Critical for Credibility:**
+Train/test split on historical race data validates prediction accuracy.
+
+**Metrics:**
+- MAE (Mean Absolute Error)
+- RMSE (Root Mean Squared Error)
+- R² by compound
+- Traffic lap detection
+
+**Implementation:** `/src/f1strategy/validation.py`
+
+### 4. Undercut/Overcut Analysis
+
+**Strategy Reasoning:**
+Undercut works when fresh tire pace exceeds degradation of opponent's worn tires, accounting for pit loss and warmup penalty.
+
+**Calculation:**
+```
+Net Gain = Σ(opponent_laptime - your_laptime) - pit_loss - warmup_penalty
+```
+
+**Implementation:** `/src/f1strategy/undercut.py`
+
+### 5. Risk Analysis
+
+**Strategy Dominance:**
+Probability that Strategy A beats Strategy B across all scenarios.
+
+**Risk Profiles:**
+- Best case (5th percentile)
+- Mean expected time
+- Worst case (95th percentile)
+- Probability of being fastest
+
+**Implementation:** `/src/f1strategy/optimizer.py`
 
 ---
 
-## Modeling Assumptions & Limitations
+## Configuration
 
-### What We Model
-✅ Tire degradation from historical data
-✅ Pit stop time variation
-✅ Safety car probability and timing
-✅ Uncertainty quantification via Monte Carlo
+All parameters configurable via `StrategyConfig`:
 
-### What We DON'T Model
-❌ **Traffic**: Assumes clear air throughout
-❌ **Weather changes**: Rain/wet conditions
-❌ **Incidents**: Crashes, VSC, red flags (beyond SC)
-❌ **Driver skill variation**: Assumes consistent performance
-❌ **Fuel load**: Fuel effect on lap time
-❌ **Track evolution**: Grip changes over session
-❌ **Tire temperature**: Warm-up laps, graining, blistering
+```python
+from f1strategy.config import StrategyConfig
 
-### Interpretation Guidelines
+config = StrategyConfig(
+    # Monte Carlo
+    n_simulations=2000,
+    random_seed=42,
 
-✅ **Do:** Use for comparative strategy analysis
-✅ **Do:** Understand relative trade-offs (1-stop vs 2-stop)
-✅ **Do:** Identify optimal pit windows
+    # Degradation
+    auto_select_degradation_model=True,
+    cv_folds=3,
 
-❌ **Don't:** Treat predictions as absolute race times
-❌ **Don't:** Ignore real-world factors (traffic, weather)
-❌ **Don't:** Use for betting or commercial purposes
+    # Pit stops
+    pit_loss_mean=22.0,
+    pit_loss_std=1.5,
 
----
+    # Warmup
+    warmup_penalty_initial=0.5,
+    warmup_decay_tau=1.5,
+    warmup_model="exponential",
 
-## Project Structure
+    # Safety cars
+    safety_car_prob=0.3,
+    vsc_prob=0.2,
+    max_sc_events=2,
+    max_vsc_events=2,
 
-```
-f1-race-strategy-simulator/
-├── src/f1strategy/
-│   ├── config.py          # Configuration and settings
-│   ├── data_loader.py     # FastF1 data loading, stint extraction
-│   ├── degrade_model.py   # Tire degradation fitting
-│   ├── simulator.py       # Monte Carlo race simulation
-│   ├── optimizer.py       # Strategy optimization (grid search)
-│   ├── viz.py             # Plotly visualizations
-│   ├── report.py          # HTML report generation
-│   └── cli.py             # Command-line interface
-├── app/
-│   └── streamlit_app.py   # Interactive Streamlit dashboard
-├── tests/
-│   ├── test_degrade_model.py
-│   └── test_simulator.py
-├── .github/workflows/
-│   └── ci.yml             # GitHub Actions CI
-├── pyproject.toml
-├── README.md
-└── LICENSE
+    # SC/VSC impact
+    sc_lap_time_reduction=0.30,
+    vsc_lap_time_reduction=0.40,
+    sc_pit_advantage=15.0,
+    vsc_pit_advantage=8.0,
+
+    # Traffic
+    enable_traffic_model=False,
+    track_type="permanent",
+
+    # Validation
+    validation_test_size=0.2,
+    traffic_detection_threshold=2.5,
+)
 ```
 
 ---
 
-## Examples
+## Module Reference
 
-### Example 1: Bahrain 2024 - Verstappen
+### Core Modules
 
-```bash
-poetry run f1strategy run --year 2024 --event "Bahrain" --driver "VER" --n-sims 2000
-```
+**`config.py`** - Configuration dataclass with all parameters
 
-**Output:** Recommends 1-stop SOFT→HARD strategy, pitting on lap 18-22
+**`data_loader.py`** - FastF1 integration for race data extraction
 
-### Example 2: Monaco 2023 - Interactive Analysis
+**`degrade_model.py`** - Tire degradation modeling with automatic selection
 
-```bash
-poetry run streamlit run app/streamlit_app.py
-```
+**`simulator.py`** - Monte Carlo race simulation with SC/VSC
 
-Select Monaco, explore degradation curves for SOFT/MEDIUM, compare 1-stop vs 2-stop strategies with uncertainty bands.
+**`optimizer.py`** - Strategy generation, optimization, and risk analysis
+
+### Analysis Modules
+
+**`validation.py`** - Model validation against historical performance
+
+**`undercut.py`** - Undercut/overcut gain estimation and pit window analysis
+
+**`traffic.py`** - Traffic penalty modeling (simplified proxy)
+
+### Visualization & Interface
+
+**`viz.py`** - Professional F1-themed Plotly visualizations
+
+**`cli.py`** - Command-line interface
+
+**`app/streamlit_app.py`** - Multi-page Streamlit dashboard
+
+**`report.py`** - HTML report generation
 
 ---
 
-## Visualizations
+## Example Workflow
 
-The tool generates:
+```python
+from f1strategy import (
+    config,
+    data_loader,
+    degrade_model,
+    optimizer,
+    validation,
+    undercut,
+)
 
-1. **Degradation Curves**: Lap time vs stint age with confidence bands
-2. **Race Time Distributions**: Histogram of simulated race times per strategy
-3. **Cumulative Distribution**: CDF showing probability of finishing under time X
-4. **Strategy Comparison**: Bar chart with mean times and error bars
-5. **Pit Window Heatmap**: Optimal pit lap for given compound combination
-6. **Sensitivity Analysis**: Impact of parameter changes (pit loss, degradation, SC probability)
+# 1. Load race data
+cfg = config.StrategyConfig(n_simulations=2000, random_seed=42)
+session = data_loader.load_race_session(2024, "Bahrain", cfg)
+race_info = data_loader.get_race_info(session)
+stint_data = data_loader.extract_stints(session, "VER")
+
+# 2. Fit and validate degradation models
+deg_models = degrade_model.fit_all_compounds(stint_data, cfg)
+
+validation_result = validation.validate_race(
+    2024, "Bahrain", "VER", stint_data, cfg
+)
+print(f"Validation MAE: {validation_result.overall_mae:.3f}s")
+
+# 3. Optimize strategies
+ranked_strategies, results_dict = optimizer.optimize_strategy(
+    deg_models,
+    race_info['total_laps'],
+    cfg,
+)
+
+# 4. Calculate risk profiles
+risk_profiles = optimizer.calculate_risk_profiles(results_dict, cfg)
+
+# 5. Generate executive summary
+summary = optimizer.create_strategy_executive_summary(
+    results_dict,
+    risk_profiles,
+    top_n=3,
+)
+print(summary)
+
+# 6. Analyze undercut windows
+compounds = list(deg_models.keys())
+recommendation = undercut.find_optimal_undercut_window(
+    race_laps=race_info['total_laps'],
+    your_compound=compounds[0],
+    your_stint_age_start=10,
+    new_compound=compounds[1],
+    opponent_compound=compounds[0],
+    opponent_stint_age_start=10,
+    degradation_models=deg_models,
+    config=cfg,
+)
+
+print(f"Optimal undercut: Lap {recommendation.optimal_lap}")
+print(f"Expected gain: {recommendation.expected_gain:+.2f}s")
+```
 
 ---
 
-## Development
+## Design Philosophy
 
-### Running Tests
+### Professional Tool for Race Engineers
 
-```bash
-poetry run pytest
-poetry run pytest --cov=f1strategy --cov-report=term-missing
-```
+This simulator is designed to look and function like actual strategy tools used in F1 paddocks:
 
-### Code Quality
+1. **Physics-Based**: All models grounded in tire physics and race dynamics
+2. **Validated**: Credibility through rigorous testing on historical data
+3. **Probabilistic**: Acknowledges uncertainty via Monte Carlo methods
+4. **Decision-Focused**: Executive summaries, risk profiles, sensitivity analysis
+5. **Professional UI**: Clean, dark theme, F1 red accents, no emojis
 
-```bash
-poetry run black src/ tests/
-poetry run ruff check src/ tests/
-poetry run mypy src/f1strategy --ignore-missing-imports
-```
+### No Emojis Policy
 
-### CI/CD
-
-GitHub Actions runs tests on Python 3.10, 3.11, 3.12 for every push/PR.
+Professional tools for engineers use clear, technical language without decorative elements. All user-facing text is direct and informative.
 
 ---
 
 ## Data Source
 
-**FastF1** (https://docs.fastf1.dev/)
-- Free, open-source Python package
-- Provides F1 timing, telemetry, and race data
-- Supports 2018-2025 seasons
-- Data cached locally to avoid re-downloads
+Race data provided by [FastF1](https://github.com/theOehrly/Fast-F1), an open-source Python library for accessing F1 timing data.
 
 ---
 
-## Troubleshooting
+## Future Enhancements
 
-### "No degradation models could be fitted"
-- Some races have insufficient clean stint data
-- Try a different event with more typical tire strategy
-- Check driver actually completed significant race distance
-
-### "Session not found"
-- Verify event name matches exactly (e.g., "Bahrain" not "Sakhir")
-- Try using round number instead of name
-- Ensure race session ("R") exists for that event
-
----
-
-## Roadmap
-
-Future enhancements:
-- [ ] Weather/rain modeling
-- [ ] Traffic impact simulation
-- [ ] Multi-driver race simulation
-- [ ] Lap-by-lap position tracking
-- [ ] Real-time strategy updates during race
-- [ ] ML-based degradation prediction
-
----
-
-## Acknowledgments
-
-- **FastF1**: Free F1 data access
-- **Plotly & Streamlit**: Interactive visualizations and dashboards
-- **F1 Strategy Community**: Inspiration and domain knowledge
+- Full grid position simulation for traffic modeling
+- Real-time race strategy updates during live sessions
+- Multi-car strategy coordination
+- Weather impact modeling
+- Fuel load effects on lap times
+- Integration with telemetry data
 
 ---
 
 ## License
 
-MIT License - see LICENSE for details
-
-Copyright (c) 2025 João Pedro Cunha
+MIT License - See LICENSE file
 
 ---
 
-## Citation
+## Author
 
-If you use this tool in research or presentations:
+**João Pedro Cunha**
 
-```
-Cunha, J.P. (2025). F1 Race Strategy Simulator: Degradation Modeling +
-Pit Stop Optimization. https://github.com/yourusername/f1-race-strategy-simulator
-```
+Professional F1 Race Strategy Analysis Tool
+
+For questions or contributions, please open an issue or pull request.
 
 ---
 
-**Built with Claude Code** | Data powered by FastF1
+## Acknowledgments
+
+- FastF1 project for F1 data access
+- F1 strategy community for domain expertise
+- Open-source scientific Python ecosystem

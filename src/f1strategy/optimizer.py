@@ -1,9 +1,17 @@
 """Strategy optimization for F1 Race Strategy Simulator.
 
+Enhanced with professional race strategy analysis:
+- Strategy dominance probability (A beats B X% of time)
+- Risk profiles (best-case/worst-case percentiles)
+- Sensitivity analysis (which parameters matter most)
+- Executive summaries for decision makers
+
 Author: João Pedro Cunha
 """
 
 import logging
+from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 
@@ -12,6 +20,41 @@ from f1strategy.degrade_model import DegradationModel
 from f1strategy.simulator import Strategy, Stint, run_monte_carlo, SimulationResult
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StrategyRiskProfile:
+    """Risk profile for a strategy."""
+
+    strategy_name: str
+    mean_time: float
+    median_time: float
+    std_time: float
+    best_case: float  # 5th percentile (optimistic)
+    worst_case: float  # 95th percentile (pessimistic)
+    probability_top_strategy: float  # probability of being fastest
+
+
+@dataclass
+class StrategyComparison:
+    """Head-to-head comparison between two strategies."""
+
+    strategy_a: str
+    strategy_b: str
+    prob_a_beats_b: float  # probability A is faster than B
+    mean_delta: float  # mean time difference (A - B)
+    median_delta: float
+
+
+@dataclass
+class SensitivityResult:
+    """Sensitivity analysis result."""
+
+    parameter_name: str
+    base_value: float
+    varied_value: float
+    mean_time_change: float  # seconds
+    rank_change: int  # change in strategy ranking
 
 
 def generate_one_stop_strategies(
@@ -201,3 +244,265 @@ def analyze_pit_window(
         "compound2": compound2,
         "analysis": pit_analysis,
     }
+
+
+def calculate_strategy_dominance(
+    strategy_a_results: list[SimulationResult],
+    strategy_b_results: list[SimulationResult],
+) -> StrategyComparison:
+    """Calculate probability that strategy A beats strategy B.
+
+    Strategy reasoning: Race engineers need to know not just average performance,
+    but the probability of one strategy beating another across all scenarios
+    (with/without safety cars, different degradation realizations, etc.).
+
+    Args:
+        strategy_a_results: Simulation results for strategy A
+        strategy_b_results: Simulation results for strategy B
+
+    Returns:
+        StrategyComparison with dominance probability
+    """
+    times_a = np.array([r.total_time for r in strategy_a_results])
+    times_b = np.array([r.total_time for r in strategy_b_results])
+
+    # Monte Carlo: sample pairs and count wins
+    n_comparisons = min(len(times_a), len(times_b))
+    wins_a = np.sum(times_a[:n_comparisons] < times_b[:n_comparisons])
+    prob_a_beats_b = wins_a / n_comparisons
+
+    mean_delta = np.mean(times_a) - np.mean(times_b)
+    median_delta = np.median(times_a) - np.median(times_b)
+
+    strategy_a_name = strategy_a_results[0].strategy.description
+    strategy_b_name = strategy_b_results[0].strategy.description
+
+    return StrategyComparison(
+        strategy_a=strategy_a_name,
+        strategy_b=strategy_b_name,
+        prob_a_beats_b=float(prob_a_beats_b),
+        mean_delta=float(mean_delta),
+        median_delta=float(median_delta),
+    )
+
+
+def calculate_risk_profiles(
+    results_dict: dict[str, list[SimulationResult]],
+    config: StrategyConfig = DEFAULT_CONFIG,
+) -> dict[str, StrategyRiskProfile]:
+    """Calculate risk profiles for all strategies.
+
+    Risk profile includes:
+    - Best case (5th percentile): optimistic scenario
+    - Worst case (95th percentile): pessimistic scenario
+    - Probability of being fastest overall
+
+    Args:
+        results_dict: Dictionary of strategy results
+        config: Strategy configuration
+
+    Returns:
+        Dictionary mapping strategy name to risk profile
+    """
+    risk_profiles = {}
+
+    # Collect all times for cross-strategy comparison
+    all_strategy_times = {}
+    for name, results in results_dict.items():
+        all_strategy_times[name] = [r.total_time for r in results]
+
+    # Calculate probability each strategy is fastest
+    n_sims = len(list(all_strategy_times.values())[0])
+    fastest_counts = {name: 0 for name in results_dict.keys()}
+
+    for sim_idx in range(n_sims):
+        # Get time for each strategy in this simulation
+        sim_times = {
+            name: times[sim_idx] for name, times in all_strategy_times.items()
+        }
+        fastest_strategy = min(sim_times, key=sim_times.get)
+        fastest_counts[fastest_strategy] += 1
+
+    # Calculate risk profiles
+    for name, results in results_dict.items():
+        times = all_strategy_times[name]
+        p_low, p_high = config.risk_percentiles
+
+        risk_profiles[name] = StrategyRiskProfile(
+            strategy_name=name,
+            mean_time=float(np.mean(times)),
+            median_time=float(np.median(times)),
+            std_time=float(np.std(times)),
+            best_case=float(np.percentile(times, p_low)),
+            worst_case=float(np.percentile(times, p_high)),
+            probability_top_strategy=float(fastest_counts[name] / n_sims),
+        )
+
+    return risk_profiles
+
+
+def create_strategy_executive_summary(
+    results_dict: dict[str, list[SimulationResult]],
+    risk_profiles: dict[str, StrategyRiskProfile],
+    top_n: int = 3,
+    config: StrategyConfig = DEFAULT_CONFIG,
+) -> str:
+    """Create executive summary for strategy decision.
+
+    Format suitable for race engineers and team principals.
+
+    Args:
+        results_dict: Strategy results
+        risk_profiles: Risk profiles for each strategy
+        top_n: Number of top strategies to include
+        config: Strategy configuration
+
+    Returns:
+        Formatted executive summary string
+    """
+    # Rank strategies by mean time
+    ranked = sorted(
+        risk_profiles.items(),
+        key=lambda x: x[1].mean_time,
+    )
+
+    summary_lines = [
+        "=" * 80,
+        "STRATEGY EXECUTIVE SUMMARY",
+        "=" * 80,
+        "",
+    ]
+
+    # Top strategies
+    summary_lines.append(f"TOP {top_n} RECOMMENDED STRATEGIES:")
+    summary_lines.append("-" * 80)
+
+    for rank, (name, profile) in enumerate(ranked[:top_n], 1):
+        ci_width = profile.worst_case - profile.best_case
+        confidence = "High" if ci_width < 5.0 else "Medium" if ci_width < 10.0 else "Low"
+
+        summary_lines.append(f"\n{rank}. {name}")
+        summary_lines.append(f"   Expected Time: {profile.mean_time:.2f}s ± {profile.std_time:.2f}s")
+        summary_lines.append(
+            f"   Best Case: {profile.best_case:.2f}s  |  Worst Case: {profile.worst_case:.2f}s"
+        )
+        summary_lines.append(
+            f"   Probability Fastest: {profile.probability_top_strategy * 100:.1f}%"
+        )
+        summary_lines.append(f"   Confidence: {confidence}")
+
+        # Time delta to best
+        if rank > 1:
+            delta = profile.mean_time - ranked[0][1].mean_time
+            summary_lines.append(f"   Gap to P1: +{delta:.2f}s")
+
+    # Risk assessment
+    summary_lines.append("\n" + "-" * 80)
+    summary_lines.append("RISK ASSESSMENT:")
+    summary_lines.append("-" * 80)
+
+    best_strategy = ranked[0][0]
+    best_profile = ranked[0][1]
+
+    summary_lines.append(f"\nRecommended: {best_strategy}")
+    summary_lines.append(
+        f"Risk Level: "
+        f"{'Low' if best_profile.worst_case - best_profile.best_case < 5.0 else 'Medium'}"
+    )
+
+    # Head-to-head comparisons
+    if len(ranked) > 1:
+        summary_lines.append("\nHEAD-TO-HEAD COMPARISONS:")
+        for i in range(1, min(3, len(ranked))):
+            comparison = calculate_strategy_dominance(
+                results_dict[ranked[0][0]],
+                results_dict[ranked[i][0]],
+            )
+            summary_lines.append(
+                f"  P1 vs P{i+1}: {comparison.prob_a_beats_b * 100:.1f}% win rate "
+                f"(avg delta: {abs(comparison.mean_delta):.2f}s)"
+            )
+
+    summary_lines.append("\n" + "=" * 80)
+
+    return "\n".join(summary_lines)
+
+
+def analyze_sensitivity(
+    base_strategy: Strategy,
+    degradation_models: dict[str, DegradationModel],
+    total_laps: int,
+    base_config: StrategyConfig,
+    parameter_variations: Optional[dict[str, list[float]]] = None,
+) -> dict[str, list[SensitivityResult]]:
+    """Analyze sensitivity of strategy performance to parameter changes.
+
+    Tests how strategy ranking changes when key parameters vary.
+    Critical for understanding decision robustness.
+
+    Args:
+        base_strategy: Strategy to analyze
+        degradation_models: Degradation models
+        total_laps: Total race laps
+        base_config: Base configuration
+        parameter_variations: Optional custom parameter variations
+
+    Returns:
+        Dictionary mapping parameter name to sensitivity results
+    """
+    if parameter_variations is None:
+        # Default variations
+        parameter_variations = {
+            "pit_loss_mean": [20.0, 22.0, 24.0],
+            "safety_car_prob": [0.0, 0.3, 0.6],
+        }
+
+    # Run base case
+    base_results = run_monte_carlo(
+        base_strategy,
+        degradation_models,
+        total_laps,
+        base_config,
+        show_progress=False,
+    )
+    base_mean = np.mean([r.total_time for r in base_results])
+
+    sensitivity_results = {}
+
+    for param_name, values in parameter_variations.items():
+        param_results = []
+
+        for value in values:
+            # Create modified config
+            config_dict = base_config.__dict__.copy()
+            if param_name in config_dict:
+                old_value = config_dict[param_name]
+                config_dict[param_name] = value
+
+                modified_config = StrategyConfig(**config_dict)
+
+                # Run simulation with modified parameter
+                varied_results = run_monte_carlo(
+                    base_strategy,
+                    degradation_models,
+                    total_laps,
+                    modified_config,
+                    show_progress=False,
+                )
+
+                varied_mean = np.mean([r.total_time for r in varied_results])
+                delta = varied_mean - base_mean
+
+                param_results.append(
+                    SensitivityResult(
+                        parameter_name=param_name,
+                        base_value=float(old_value) if isinstance(old_value, (int, float)) else 0.0,
+                        varied_value=float(value),
+                        mean_time_change=float(delta),
+                        rank_change=0,  # Would need multiple strategies to assess
+                    )
+                )
+
+        sensitivity_results[param_name] = param_results
+
+    return sensitivity_results

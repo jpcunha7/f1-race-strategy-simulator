@@ -1,0 +1,180 @@
+/* F1 Telemetry Physics Lab - Professional Dark Theme Styles */
+
+/* Main content area */
+.main {
+    padding: 2rem 3rem;
+}
+
+/* Headers */
+h1 {
+    color: #FAFAFA;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 3px solid #FF1E1E;
+    padding-bottom: 0.5rem;
+}
+
+h2 {
+    color: #FAFAFA;
+    font-weight: 600;
+    font-size: 1.8rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+h3 {
+    color: #E0E0E0;
+    font-weight: 500;
+    font-size: 1.4rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Subtitle and description text */
+.subtitle {
+    color: #B0B0B0;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Metric cards */
+div[data-testid="stMetricValue"] {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #FF1E1E;
+}
+
+div[data-testid="stMetricLabel"] {
+    font-size: 0.9rem;
+    color: #B0B0B0;
+    font-weight: 500;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: #FF1E1E;
+    color: #FAFAFA;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 2rem;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: #CC1818;
+    box-shadow: 0 4px 12px rgba(255, 30, 30, 0.3);
+}
+
+/* Input fields */
+.stTextInput > div > div > input,
+.stSelectbox > div > div > select,
+.stNumberInput > div > div > input {
+    background-color: #1A1D24;
+    color: #FAFAFA;
+    border: 1px solid #333842;
+    border-radius: 4px;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #0E1117;
+    padding: 2rem 1rem;
+}
+
+section[data-testid="stSidebar"] > div {
+    background-color: #0E1117;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: #1A1D24;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    color: #B0B0B0;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 0.5rem 1.5rem;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #FF1E1E;
+    color: #FAFAFA;
+}
+
+/* Dividers */
+hr {
+    border: none;
+    border-top: 1px solid #333842;
+    margin: 2rem 0;
+}
+
+/* Info boxes */
+.stAlert {
+    background-color: #1A1D24;
+    border-left: 4px solid #FF1E1E;
+    color: #FAFAFA;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+/* Data status panel */
+.data-status {
+    background-color: #1A1D24;
+    border: 1px solid #333842;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.data-status h4 {
+    color: #FF1E1E;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.data-status p {
+    color: #B0B0B0;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+/* Download buttons */
+.stDownloadButton > button {
+    background-color: #1A1D24;
+    color: #FAFAFA;
+    border: 1px solid #FF1E1E;
+    font-weight: 500;
+}
+
+.stDownloadButton > button:hover {
+    background-color: #FF1E1E;
+    border-color: #FF1E1E;
+}
+
+/* Spinner */
+.stSpinner > div {
+    border-top-color: #FF1E1E !important;
+}
+
+/* Success/Warning/Error messages */
+.stSuccess {
+    background-color: #1A3A1A;
+    border-left-color: #2ECC40;
+}
+
+.stWarning {
+    background-color: #3A3A1A;
+    border-left-color: #FFDC00;
+}
+
+.stError {
+    background-color: #3A1A1A;
+    border-left-color: #FF4136;
+}

@@ -76,7 +76,6 @@ HTML_TEMPLATE = """
 
     <div style="margin-top: 50px; text-align: center; color: #666;">
         <p><strong>F1 Race Strategy Simulator</strong> | Author: João Pedro Cunha</p>
-        <p>Built with Claude Code</p>
     </div>
 </body>
 </html>
