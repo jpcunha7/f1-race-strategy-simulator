@@ -152,9 +152,6 @@ def fit_piecewise_model(
     X_late = X[late_mask].reshape(-1, 1)
     y_late = y[late_mask]
 
-    # Expected value at breakpoint from early model
-    breakpoint_value = baseline + early_rate * breakpoint
-
     # Fit late segment
     late_model = LinearRegression()
     late_model.fit(X_late, y_late)

@@ -119,10 +119,6 @@ def apply_traffic_to_strategy(
 
         # Laps immediately after pit stop
         pit_lap_idx = stint.start_lap - 1  # Convert to 0-indexed
-        traffic_end_lap = min(
-            pit_lap_idx + traffic_params.traffic_duration_laps,
-            len(lap_times),
-        )
 
         # Calculate traffic penalty
         penalty_per_lap = estimate_traffic_penalty(
@@ -171,7 +167,6 @@ def estimate_rejoin_gap(
         gap = pit_loss - typical_gap_per_position
     else:
         # Mid-pack: lose time from pit stop minus what field gained
-        field_progress = typical_lap_time
         net_loss = pit_loss - (typical_gap_per_position * 0.5)  # Simplified
         gap = net_loss
 
